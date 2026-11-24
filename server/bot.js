@@ -210,6 +210,7 @@ app.use(express.json());
 // Webhook endpoint for Telegram
 app.post(`/webhook/${BOT_TOKEN}`, (req, res) => {
   try {
+    console.log('Webhook received:', JSON.stringify(req.body).substring(0, 200));
     bot.handleUpdate(req.body);
     res.sendStatus(200);
   } catch (e) {
