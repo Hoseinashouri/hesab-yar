@@ -1,12 +1,11 @@
-services:
-  - type: web
-    name: hesab-yar-bot
-    env: node
-    buildCommand: npm install
-    startCommand: node server/bot.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 10000
-    healthCheckPath: /
+name: hesab-yar-bot
+type: web
+regions:
+  - virginia
+env: node
+buildCommand: npm install
+startCommand: node server/bot.js
+ports:
+  - port: 8080
+    protocol: tcp
+healthCheckPath: /
