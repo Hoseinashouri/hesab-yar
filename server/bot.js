@@ -209,7 +209,7 @@ app.use(express.json());
 
 // Webhook endpoint for Telegram
 app.post(`/webhook/${BOT_TOKEN}`, (req, res) => {
-  bot.processUpdate(req.body);
+  bot.handleUpdate(req.body);
   res.sendStatus(200);
 });
 
@@ -255,8 +255,13 @@ app.listen(PORT, async () => {
   // Set webhook
   try {
     const webhookUrl = `${APP_URL}/webhook/${BOT_TOKEN}`;
-    await bot.setWebhook(webhookUrl);
-    console.log(`📡 Webhook set: ${webhookUrl}`);
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
+    const data = await res.json();
+    if (data.ok) {
+      console.log(`📡 Webhook set: ${webhookUrl}`);
+    } else {
+      console.error('Webhook setup failed:', data.description);
+    }
   } catch (e) {
     console.error('Webhook setup failed:', e.message);
   }
