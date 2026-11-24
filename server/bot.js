@@ -206,11 +206,12 @@ bot.on('web_app_data', (msg) => {
 // ─── EXPRESS SERVER ───────────────────────────────────────
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../')));
-
+// Health check endpoint (before static middleware for Railway/Render health checks)
 app.get('/', (req, res) => {
   res.json({ status: 'ok', service: 'hesab-yar-bot' });
 });
+
+app.use(express.static(path.join(__dirname, '../')));
 
 app.post('/api/sync', (req, res) => {
   const { userId, transactions, reminders, budgets, goals } = req.body;
