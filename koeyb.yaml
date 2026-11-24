@@ -1,0 +1,16 @@
+name: hesab-yar-bot
+type: web
+regions:
+  - frankfurt
+ports:
+  - port: 8080
+    protocol: tcp
+build:
+  type: buildpack
+  builder: paketobuildpacks/builder-jammy-base:full
+start: node server/bot.js
+env:
+  - key: NODE_ENV
+    value: production
+  - key: PORT
+    value: "8080"
