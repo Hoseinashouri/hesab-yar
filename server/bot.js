@@ -13,7 +13,7 @@ const APP_URL = process.env.APP_URL || `https://${process.env.RENDER_EXTERNAL_HO
 const PORT = process.env.PORT || 8080;
 
 const users = new Map();
-const bot = new Bot(BOT_TOKEN, { polling: true });
+const bot = new Bot(BOT_TOKEN);
 
 // ─── HELPERS ──────────────────────────────────────────────
 function sendWelcome(chatId) {
@@ -206,7 +206,14 @@ bot.on('web_app_data', (msg) => {
 // ─── EXPRESS SERVER ───────────────────────────────────────
 const app = express();
 app.use(express.json());
-// Health check endpoint (before static middleware for Railway/Render health checks)
+
+// Webhook endpoint for Telegram
+app.post(`/webhook/${BOT_TOKEN}`, (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
+
+// Health check endpoint
 app.get('/', (req, res) => {
   res.json({ status: 'ok', service: 'hesab-yar-bot' });
 });
@@ -241,8 +248,16 @@ setInterval(() => {
   });
 }, 60000);
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Server: http://localhost:${PORT}`);
   console.log(`🤖 Bot started!`);
   console.log(`📱 Mini App URL: ${APP_URL}`);
+  // Set webhook
+  try {
+    const webhookUrl = `${APP_URL}/webhook/${BOT_TOKEN}`;
+    await bot.setWebHook(webhookUrl);
+    console.log(`📡 Webhook set: ${webhookUrl}`);
+  } catch (e) {
+    console.error('Webhook setup failed:', e.message);
+  }
 });
