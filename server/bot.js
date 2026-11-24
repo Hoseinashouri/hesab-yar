@@ -224,36 +224,6 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', service: 'hesab-yar-bot' });
 });
 
-app.use(express.static(path.join(__dirname, '../')));
-
-app.post('/api/sync', (req, res) => {
-  const { userId, transactions, reminders, budgets, goals } = req.body;
-  users.set(userId, { transactions, reminders, budgets, goals });
-  res.json({ ok: true });
-});
-
-app.get('/api/data/:userId', (req, res) => {
-  res.json(users.get(req.params.userId) || {
-    transactions: [], reminders: [], budgets: [], goals: []
-  });
-});
-
-// Reminder checker (every minute)
-setInterval(() => {
-  const now = new Date();
-  users.forEach((data, userId) => {
-    (data.reminders || []).forEach(r => {
-      if (!r.notified && new Date(r.date) <= now) {
-        r.notified = true;
-        bot.sendMessage(parseInt(userId),
-          `🔔 یادآوری!\n${r.title}\n💰 مبلغ: ${r.amount.toLocaleString()} تومان`,
-          { reply_markup: { inline_keyboard: [[{ text: '✓ انجام شد', callback_data: `done_${r.id}` }]] }}
-        ).catch(() => {});
-      }
-    });
-  });
-}, 60000);
-
 app.listen(PORT, async () => {
   console.log(`🚀 Server: http://localhost:${PORT}`);
   console.log(`🤖 Bot started!`);
