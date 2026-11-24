@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0088cc" />
+  <title>حساب‌یار | یادآور و حسابداری شخصی</title>
+  <script src="https://tdesktop.com/js/telegram_web_app"></script>
+  <style>
+    :root {
+      --tg-theme-bg-color: #ffffff;
+      --tg-theme-text-color: #000000;
+      --tg-theme-hint-color: #999999;
+      --tg-theme-link-color: #0088cc;
+      --tg-theme-button-color: #0088cc;
+      --tg-theme-button-text-color: #ffffff;
+      --tg-theme-secondary-bg-color: #f0f0f0;
+      --accent: #0088cc;
+      --green: #2ecc71;
+      --red: #e74c3c;
+      --orange: #f39c12;
+      --radius: 16px;
+      --pad: 16px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, sans-serif;
+      background: var(--tg-theme-bg-color);
+      color: var(--tg-theme-text-color);
+      min-height: 100vh;
+      padding-bottom: 80px;
+      direction: rtl;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, var(--accent), #00a8e8);
+      color: white;
+      padding: 20px var(--pad) 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header h1 { font-size: 20px; font-weight: 700; }
+    .header p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+    .balance-card {
+      background: rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-top: 12px;
+      backdrop-filter: blur(10px);
+    }
+    .balance-label { font-size: 12px; opacity: 0.9; }
+    .balance-amount { font-size: 28px; font-weight: 800; margin-top: 4px; }
+    .balance-row { display: flex; gap: 16px; margin-top: 8px; }
+    .balance-item { flex: 1; background: rgba(255,255,255,0.15); border-radius: 10px; padding: 8px 12px; }
+    .balance-item .label { font-size: 11px; opacity: 0.9; }
+    .balance-item .val { font-size: 16px; font-weight: 700; margin-top: 2px; }
+    .income-val { color: #7dffb3; }
+    .expense-val { color: #ff9a9a; }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      background: var(--tg-theme-secondary-bg-color);
+      padding: 4px;
+      border-radius: 12px;
+      margin: 0 var(--pad) 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      flex: 0 0 auto;
+      padding: 10px 16px;
+      border: none;
+      background: transparent;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--tg-theme-hint-color);
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tab.active {
+      background: var(--tg-theme-bg-color);
+      color: var(--accent);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Sections */
+    .section { padding: 0 var(--pad) 16px; display: none; }
+    .section.active { display: block; }
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 16px 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .section-title a {
+      font-size: 13px;
+      color: var(--tg-theme-link-color);
+      text-decoration: none;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--tg-theme-secondary-bg-color);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+
+    /* Transaction list */
+    .transaction {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .transaction:last-child { border-bottom: none; }
+    .txn-icon {
+      width: 42px; height: 42px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .txn-icon.income { background: rgba(46,204,113,0.15); }
+    .txn-icon.expense { background: rgba(231,76,60,0.15); }
+    .txn-info { flex: 1; }
+    .txn-desc { font-size: 14px; font-weight: 600; }
+    .txn-date { font-size: 11px; color: var(--tg-theme-hint-color); margin-top: 2px; }
+    .txn-amount { font-size: 15px; font-weight: 700; }
+    .txn-amount.positive { color: var(--green); }
+    .txn-amount.negative { color: var(--red); }
+    .txn-recurring-badge {
+      font-size: 10px;
+      background: rgba(0,136,204,0.15);
+      color: var(--accent);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-right: 6px;
+    }
+
+    /* Reminder item */
+    .reminder-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--tg-theme-secondary-bg-color);
+      border-radius: 12px;
+      margin-bottom: 8px;
+    }
+    .reminder-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .reminder-dot.high { background: var(--red); }
+    .reminder-dot.medium { background: var(--orange); }
+    .reminder-dot.low { background: var(--green); }
+    .reminder-info { flex: 1; }
+    .reminder-title { font-size: 14px; font-weight: 600; }
+    .reminder-meta { font-size: 11px; color: var(--tg-theme-hint-color); margin-top: 2px; }
+    .reminder-amount { font-size: 14px; font-weight: 700; color: var(--accent); }
+
+    /* Stat cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stat-card {
+      background: var(--tg-theme-secondary-bg-color);
+      border-radius: 14px;
+      padding: 14px;
+    }
+    .stat-card .stat-icon { font-size: 24px; margin-bottom: 6px; }
+    .stat-card .stat-value { font-size: 20px; font-weight: 800; }
+    .stat-card .stat-label { font-size: 11px; color: var(--tg-theme-hint-color); margin-top: 2px; }
+
+    /* Category bar */
+    .cat-bar-wrap { margin-bottom: 10px; }
+    .cat-bar-label {
+      display: flex; justify-content: space-between;
+      font-size: 13px; margin-bottom: 4px;
+    }
+    .cat-bar-track {
+      height: 8px;
+      background: var(--tg-theme-bg-color);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .cat-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--red), var(--orange));
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    /* Budget card */
+    .budget-card {
+      background: var(--tg-theme-secondary-bg-color);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .budget-cat { font-size: 14px; font-weight: 600; }
+    .budget-range { font-size: 12px; color: var(--tg-theme-hint-color); }
+    .budget-bar-track { height: 10px; background: var(--tg-theme-bg-color); border-radius: 5px; overflow: hidden; margin-bottom: 6px; }
+    .budget-bar-fill { height: 100%; border-radius: 5px; transition: width 0.3s ease; }
+    .budget-bar-fill.ok { background: var(--green); }
+    .budget-bar-fill.warn { background: var(--orange); }
+    .budget-bar-fill.over { background: var(--red); }
+    .budget-footer { display: flex; justify-content: space-between; font-size: 12px; }
+    .budget-spent { color: var(--tg-theme-text-color); font-weight: 600; }
+    .budget-limit { color: var(--tg-theme-hint-color); }
+    .budget-delete { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 2px 6px; }
+
+    /* Savings goal */
+    .goal-card {
+      background: var(--tg-theme-secondary-bg-color);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .goal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .goal-name { font-size: 14px; font-weight: 600; }
+    .goal-target { font-size: 12px; color: var(--tg-theme-hint-color); }
+    .goal-bar-track { height: 10px; background: var(--tg-theme-bg-color); border-radius: 5px; overflow: hidden; margin-bottom: 6px; }
+    .goal-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #00a8e8); border-radius: 5px; transition: width 0.3s ease; }
+    .goal-footer { display: flex; justify-content: space-between; font-size: 12px; }
+    .goal-current { font-weight: 600; }
+    .goal-pct { color: var(--accent); font-weight: 700; }
+
+    /* Account selector */
+    .account-selector {
+      display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto;
+      padding-bottom: 4px; scrollbar-width: none;
+    }
+    .account-selector::-webkit-scrollbar { display: none; }
+    .account-chip {
+      flex: 0 0 auto;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 2px solid var(--tg-theme-secondary-bg-color);
+      background: transparent;
+      color: var(--tg-theme-text-color);
+      transition: all 0.2s;
+    }
+    .account-chip.active {
+      border-color: var(--accent);
+      background: rgba(0,136,204,0.1);
+      color: var(--accent);
+    }
+
+    /* FAB */
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--accent), #00a8e8);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 14px 32px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0,136,204,0.4);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .fab:hover { opacity: 0.9; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 300;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: var(--tg-theme-bg-color);
+      border-radius: 20px 20px 0 0;
+      padding: 24px var(--pad) 32px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .modal-title { font-size: 18px; font-weight: 700; }
+    .modal-close {
+      background: none; border: none;
+      font-size: 24px; color: var(--tg-theme-hint-color);
+      cursor: pointer;
+    }
+
+    /* Form */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      color: var(--tg-theme-hint-color);
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid var(--tg-theme-secondary-bg-color);
+      border-radius: 12px;
+      font-size: 15px;
+      background: var(--tg-theme-secondary-bg-color);
+      color: var(--tg-theme-text-color);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: var(--accent); }
+    .form-select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid var(--tg-theme-secondary-bg-color);
+      border-radius: 12px;
+      font-size: 15px;
+      background: var(--tg-theme-secondary-bg-color);
+      color: var(--tg-theme-text-color);
+      outline: none;
+    }
+    .type-toggle {
+      display: flex; gap: 8px; margin-bottom: 16px;
+    }
+    .type-btn {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid var(--tg-theme-secondary-bg-color);
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: var(--tg-theme-text-color);
+      transition: all 0.2s;
+    }
+    .type-btn.active-income { border-color: var(--green); background: rgba(46,204,113,0.1); color: var(--green); }
+    .type-btn.active-expense { border-color: var(--red); background: rgba(231,76,60,0.1); color: var(--red); }
+
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--accent), #00a8e8);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .submit-btn:hover { opacity: 0.9; }
+
+    /* Chips */
+    .category-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 2px solid var(--tg-theme-secondary-bg-color);
+      background: transparent;
+      color: var(--tg-theme-text-color);
+      transition: all 0.2s;
+    }
+    .chip.selected {
+      border-color: var(--accent);
+      background: rgba(0,136,204,0.1);
+      color: var(--accent);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: #333;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 999;
+      transition: transform 0.3s ease;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { background: var(--green); }
+    .toast.error { background: var(--red); }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--tg-theme-hint-color);
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-text { font-size: 14px; }
+
+    /* Period selector */
+    .period-selector {
+      display: flex; gap: 8px; margin-bottom: 12px;
+    }
+    .period-btn {
+      padding: 6px 14px;
+      border: 2px solid var(--tg-theme-secondary-bg-color);
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: var(--tg-theme-text-color);
+      transition: all 0.2s;
+    }
+    .period-btn.active {
+      border-color: var(--accent);
+      background: rgba(0,136,204,0.1);
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <h1>💰 حساب‌یار</h1>
+    <p>مدیریت هوشمند مالی</p>
+    <div class="balance-card">
+      <div class="balance-label">موجودی کل</div>
+      <div class="balance-amount" id="balanceDisplay">۰ تومان</div>
+      <div class="balance-row">
+        <div class="balance-item">
+          <div class="label">📈 درآمد</div>
+          <div class="val income-val" id="totalIncome">۰ تومان</div>
+        </div>
+        <div class="balance-item">
+          <div class="label">📉 هزینه</div>
+          <div class="val expense-val" id="totalExpense">۰ تومان</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="transactions" onclick="switchTab('transactions')">تراکنش‌ها</button>
+    <button class="tab" data-tab="reminders" onclick="switchTab('reminders')">یادآورها</button>
+    <button class="tab" data-tab="budgets" onclick="switchTab('budgets')">بودجه‌ها</button>
+    <button class="tab" data-tab="goals" onclick="switchTab('goals')">اهداف</button>
+    <button class="tab" data-tab="stats" onclick="switchTab('stats')">آمار</button>
+  </div>
+
+  <!-- ==================== TRANSACTIONS ==================== -->
+  <div id="tab-transactions" class="section active">
+    <div class="account-selector" id="accountSelector"></div>
+    <div class="period-selector">
+      <button class="period-btn active" data-period="all" onclick="setPeriod('all',this)">همه</button>
+      <button class="period-btn" data-period="month" onclick="setPeriod('month',this)">این ماه</button>
+      <button class="period-btn" data-period="week" onclick="setPeriod('week',this)">این هفته</button>
+    </div>
+    <div id="transactionList"></div>
+  </div>
+
+  <!-- ==================== REMINDERS ==================== -->
+  <div id="tab-reminders" class="section">
+    <div class="section-title"><span>یادآورهای فعال</span></div>
+    <div id="reminderList"></div>
+  </div>
+
+  <!-- ==================== BUDGETS ==================== -->
+  <div id="tab-budgets" class="section">
+    <div class="section-title"><span>بودجه‌بندی ماهانه</span></div>
+    <div id="budgetList"></div>
+    <button class="chip" style="margin-top:8px;" onclick="openModal('budget')">+ افزودن بودجه</button>
+  </div>
+
+  <!-- ==================== GOALS ==================== -->
+  <div id="tab-goals" class="section">
+    <div class="section-title"><span>اهداف پس‌انداز</span></div>
+    <div id="goalList"></div>
+    <button class="chip" style="margin-top:8px;" onclick="openModal('goal')">+ افزودن هدف</button>
+  </div>
+
+  <!-- ==================== STATS ==================== -->
+  <div id="tab-stats" class="section">
+    <div class="section-title"><span>آمار مالی</span></div>
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="section-title" style="margin-top:20px;"><span>دسته‌بندی هزینه‌ها</span></div>
+    <div id="categoryStats"></div>
+    <div class="section-title" style="margin-top:20px;"><span>تمایل به هدف</span></div>
+    <div id="goalStats"></div>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab" onclick="openModal()">
+    <span>+</span> ثبت تراکنش / یادآور
+  </button>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title" id="modalTitle">تراکنش جدید</div>
+        <button class="modal-close" onclick="closeModalDirect()">✕</button>
+      </div>
+
+      <!-- Type toggle -->
+      <div class="type-toggle">
+        <button class="type-btn active-expense" id="btn-expense" onclick="setType('expense')">📉 هزینه</button>
+        <button class="type-btn" id="btn-income" onclick="setType('income')">📈 درآمد</button>
+      </div>
+
+      <!-- Amount -->
+      <div class="form-group">
+        <label class="form-label">مبلغ (تومان)</label>
+        <input type="number" class="form-input" id="amountInput" placeholder="مثلاً ۵۰۰۰۰" inputmode="numeric" />
+      </div>
+
+      <!-- Description -->
+      <div class="form-group">
+        <label class="form-label">توضیحات</label>
+        <input type="text" class="form-input" id="descInput" placeholder="مثلاً خرید نان" />
+      </div>
+
+      <!-- Category -->
+      <div class="form-group" id="categoryGroup">
+        <label class="form-label">دسته‌بندی</label>
+        <div class="category-chips" id="categoryChips"></div>
+      </div>
+
+      <!-- Account -->
+      <div class="form-group">
+        <label class="form-label">حساب</label>
+        <select class="form-select" id="accountSelect">
+          <option value="wallet">💵 کیف پول</option>
+          <option value="bank">🏦 بانک</option>
+          <option value="credit">💳 کارت اعتباری</option>
+        </select>
+      </div>
+
+      <!-- Date -->
+      <div class="form-group">
+        <label class="form-label">تاریخ</label>
+        <input type="date" class="form-input" id="dateInput" />
+      </div>
+
+      <!-- Recurring -->
+      <div class="form-group">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="checkbox" id="recurringToggle" onchange="toggleRecurringFields()" style="width:20px;height:20px;" />
+          <label for="recurringToggle" style="font-size:14px;font-weight:600;cursor:pointer;">تکرارشونده</label>
+        </div>
+        <div id="recurringFields" style="display:none;margin-top:10px;">
+          <div class="form-group">
+            <label class="form-label">فاصله تکرار</label>
+            <select class="form-select" id="recurringInterval">
+              <option value="daily">روزانه</option>
+              <option value="weekly" selected>هفتگی</option>
+              <option value="monthly">ماهانه</option>
+              <option value="yearly">سالانه</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reminder toggle -->
+      <div class="form-group" style="margin-top:20px;padding-top:16px;border-top:2px dashed var(--tg-theme-secondary-bg-color);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <input type="checkbox" id="reminderToggle" onchange="toggleReminderFields()" style="width:20px;height:20px;" />
+          <label for="reminderToggle" style="font-size:14px;font-weight:600;cursor:pointer;">یادآوری هم تنظیم کن</label>
+        </div>
+        <div id="reminderFields" style="display:none;">
+          <div class="form-group">
+            <label class="form-label">عنوان یادآور</label>
+            <input type="text" class="form-input" id="reminderTitleInput" placeholder="مثلاً پرداخت اجاره" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">تاریخ یادآوری</label>
+            <input type="datetime-local" class="form-input" id="reminderDateInput" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">سطح اولویت</label>
+            <select class="form-select" id="reminderPriorityInput">
+              <option value="high">🔴 بالا</option>
+              <option value="medium" selected>🟡 متوسط</option>
+              <option value="low">🟢 پایین</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button class="submit-btn" id="submitBtn" onclick="submitForm()">ذخیره ✓</button>
+    </div>
+  </div>
+
+  <!-- Budget Modal -->
+  <div class="modal-overlay" id="budgetModalOverlay" onclick="closeBudgetModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">بودجه جدید</div>
+        <button class="modal-close" onclick="closeBudgetModalDirect()">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">دسته‌بندی</label>
+        <select class="form-select" id="budgetCategory">
+          <option value="food">🍔 غذا</option>
+          <option value="transport">🚗 حمل‌ونقل</option>
+          <option value="shopping">🛍️ خرید</option>
+          <option value="bills">📄 قبوض</option>
+          <option value="health">🏥 سلامت</option>
+          <option value="education">📚 آموزش</option>
+          <option value="entertainment">🎮 تفریح</option>
+          <option value="rent">🏠 اجاره</option>
+          <option value="other_exp">📦 سایر</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">حد ماهانه (تومان)</label>
+        <input type="number" class="form-input" id="budgetAmount" placeholder="مثلاً ۲۰۰۰۰۰۰" inputmode="numeric" />
+      </div>
+      <button class="submit-btn" onclick="saveBudget()">ذخیره ✓</button>
+    </div>
+  </div>
+
+  <!-- Goal Modal -->
+  <div class="modal-overlay" id="goalModalOverlay" onclick="closeGoalModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">هدف پس‌انداز</div>
+        <button class="modal-close" onclick="closeGoalModalDirect()">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">نام هدف</label>
+        <input type="text" class="form-input" id="goalNameInput" placeholder="مثلاً خرید لپ‌تاپ" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">مبلغ هدف (تومان)</label>
+        <input type="number" class="form-input" id="goalTargetInput" placeholder="مثلاً ۵۰۰۰۰۰۰" inputmode="numeric" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">مبلغ فعلی (تومان)</label>
+        <input type="number" class="form-input" id="goalCurrentInput" placeholder="مثلاً ۱۰۰۰۰۰۰" inputmode="numeric" />
+      </div>
+      <button class="submit-btn" onclick="saveGoal()">ذخیره ✓</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ===== STATE =====
+    let currentType = 'expense';
+    let selectedCategory = '';
+    let currentAccount = 'wallet';
+    let currentPeriod = 'all';
+    let transactions = [];
+    let reminders = [];
+    let budgets = [];
+    let goals = [];
+    let tg = window.Telegram?.WebApp;
+
+    const ACCOUNTS = [
+      { id: 'wallet', name: '💵 کیف پول' },
+      { id: 'bank', name: '🏦 بانک' },
+      { id: 'credit', name: '💳 اعتباری' },
+    ];
+
+    // ===== CATEGORIES (inspired by Bilyo flow) =====
+    const CATEGORIES = {
+      expense: [
+        { id: 'food', name: '🍔 غذا', icon: '🍔' },
+        { id: 'transport', name: '🚗 حمل‌ونقل', icon: '🚗' },
+        { id: 'shopping', name: '🛍️ خرید', icon: '🛍️' },
+        { id: 'bills', name: '📄 قبوض', icon: '📄' },
+        { id: 'health', name: '🏥 سلامت', icon: '🏥' },
+        { id: 'education', name: '📚 آموزش', icon: '📚' },
+        { id: 'entertainment', name: '🎮 تفریح', icon: '🎮' },
+        { id: 'rent', name: '🏠 اجاره', icon: '🏠' },
+        { id: 'other_exp', name: '📦 سایر', icon: '📦' },
+      ],
+      income: [
+        { id: 'salary', name: '💼 حقوق', icon: '💼' },
+        { id: 'freelance', name: '💻 فریلنسری', icon: '💻' },
+        { id: 'investment', name: '📈 سرمایه‌گذاری', icon: '📈' },
+        { id: 'gift', name: '🎁 هدیه', icon: '🎁' },
+        { id: 'other_inc', name: '📦 سایر', icon: '📦' },
+      ]
+    };
+
+    // ===== INIT =====
+    function init() {
+      if (tg) {
+        tg.ready();
+        tg.expand();
+        applyTheme(tg.colorScheme);
+      }
+      loadData();
+      renderAll();
+      setupDateInputs();
+    }
+
+    function applyTheme(themeName) {
+      const root = document.documentElement;
+      if (themeName === 'dark') {
+        root.style.setProperty('--tg-theme-bg-color', '#1a1a2e');
+        root.style.setProperty('--tg-theme-text-color', '#eee');
+        root.style.setProperty('--tg-theme-secondary-bg-color', '#252540');
+        root.style.setProperty('--tg-theme-hint-color', '#888');
+      }
+    }
+
+    function setupDateInputs() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('dateInput').value = today;
+    }
+
+    // ===== DATA PERSISTENCE =====
+    function loadData() {
+      transactions = JSON.parse(localStorage.getItem('hy_transactions') || '[]');
+      reminders = JSON.parse(localStorage.getItem('hy_reminders') || '[]');
+      budgets = JSON.parse(localStorage.getItem('hy_budgets') || '[]');
+      goals = JSON.parse(localStorage.getItem('hy_goals') || '[]');
+    }
+
+    function saveData() {
+      localStorage.setItem('hy_transactions', JSON.stringify(transactions));
+      localStorage.setItem('hy_reminders', JSON.stringify(reminders));
+      localStorage.setItem('hy_budgets', JSON.stringify(budgets));
+      localStorage.setItem('hy_goals', JSON.stringify(goals));
+      syncToServer();
+    }
+
+    async function syncToServer() {
+      try {
+        const userId = tg?.initDataUnsafe?.user?.id || 'unknown';
+        await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, transactions, reminders, budgets, goals })
+        });
+      } catch(e) {}
+    }
+
+    // ===== ACCOUNT SELECTOR =====
+    function renderAccountSelector() {
+      const container = document.getElementById('accountSelector');
+      container.innerHTML = ACCOUNTS.map(a =>
+        `<button class="account-chip ${currentAccount === a.id ? 'active' : ''}" onclick="setAccount('${a.id}')">${a.name}</button>`
+      ).join('');
+    }
+
+    function setAccount(id) {
+      currentAccount = id;
+      renderAccountSelector();
+      renderTransactions();
+      updateBalance();
+    }
+
+    // ===== PERIOD =====
+    function setPeriod(period, btn) {
+      currentPeriod = period;
+      document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderTransactions();
+      renderBudgets();
+      renderStats();
+    }
+
+    function getFilteredTransactions() {
+      const now = new Date();
+      return transactions.filter(t => {
+        if (t.account !== currentAccount) return false;
+        const d = new Date(t.date);
+        if (currentPeriod === 'month') {
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }
+        if (currentPeriod === 'week') {
+          const weekStart = new Date(now);
+          weekStart.setDate(now.getDate() - now.getDay() + 1);
+          weekStart.setHours(0,0,0,0);
+          return d >= weekStart;
+        }
+        return true;
+      });
+    }
+
+    // ===== RENDER =====
+    function renderAll() {
+      renderAccountSelector();
+      renderTransactions();
+      renderReminders();
+      renderBudgets();
+      renderGoals();
+      renderStats();
+      updateBalance();
+    }
+
+    function updateBalance() {
+      const txns = transactions.filter(t => t.account === currentAccount);
+      const income = txns.filter(t => t.type === 'income').reduce((s,t) => s + t.amount, 0);
+      const expense = txns.filter(t => t.type === 'expense').reduce((s,t) => s + t.amount, 0);
+      const balance = income - expense;
+
+      document.getElementById('balanceDisplay').textContent = formatNumber(balance) + ' تومان';
+      document.getElementById('totalIncome').textContent = formatNumber(income) + ' تومان';
+      document.getElementById('totalExpense').textContent = formatNumber(expense) + ' تومان';
+    }
+
+    function renderTransactions() {
+      const container = document.getElementById('transactionList');
+      const filtered = getFilteredTransactions();
+      const sorted = [...filtered].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+      if (sorted.length === 0) {
+        container.innerHTML = `<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">هنوز تراکنشی ثبت نشده<br>اولین تراکنشت رو اضافه کن!</div></div>`;
+        return;
+      }
+
+      container.innerHTML = sorted.slice(0, 50).map(t => {
+        const cat = getCategory(t.type, t.category);
+        const isInc = t.type === 'income';
+        const recurringBadge = t.recurring ? '<span class="txn-recurring-badge">تکرارشونده</span>' : '';
+        return `
+          <div class="transaction">
+            <div class="txn-icon ${isInc ? 'income' : 'expense'}">${cat.icon}</div>
+            <div class="txn-info">
+              <div class="txn-desc">${recurringBadge}${t.description || cat.name}</div>
+              <div class="txn-date">${formatDate(t.date)}</div>
+            </div>
+            <div class="txn-amount ${isInc ? 'positive' : 'negative'}">
+              ${isInc ? '+' : '-'}${formatNumber(t.amount)}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderReminders() {
+      const container = document.getElementById('reminderList');
+      const now = new Date();
+      const upcoming = reminders
+        .filter(r => new Date(r.date) >= now)
+        .sort((a,b) => new Date(a.date) - new Date(b.date));
+
+      if (upcoming.length === 0) {
+        container.innerHTML = `<div class="empty"><div class="empty-icon">🔔</div><div class="empty-text">یادآوری فعالی ندارید<br>با ثبت تراکنش، یادآور هم تنظیم کنید</div></div>`;
+        return;
+      }
+
+      container.innerHTML = upcoming.map(r => `
+        <div class="reminder-item">
+          <div class="reminder-dot ${r.priority}"></div>
+          <div class="reminder-info">
+            <div class="reminder-title">${r.title}</div>
+            <div class="reminder-meta">${formatDateTime(r.date)}</div>
+          </div>
+          <div class="reminder-amount">${formatNumber(r.amount)}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderBudgets() {
+      const container = document.getElementById('budgetList');
+      const now = new Date();
+      const monthTxns = transactions
+        .filter(t => t.account === currentAccount && t.type === 'expense')
+        .filter(t => {
+          const d = new Date(t.date);
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        });
+
+      if (budgets.length === 0) {
+        container.innerHTML = `<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">هنوز بودجه‌ای تعریف نکردی<br>برای هر دسته بودجه ماهانه设定 کن!</div></div>`;
+        return;
+      }
+
+      container.innerHTML = budgets.map(b => {
+        const cat = getCategory('expense', b.category);
+        const spent = monthTxns.filter(t => t.category === b.category).reduce((s,t) => s + t.amount, 0);
+        const pct = Math.min(100, Math.round((spent / b.limit) * 100));
+        const status = pct >= 100 ? 'over' : pct >= 75 ? 'warn' : 'ok';
+        return `
+          <div class="budget-card">
+            <div class="budget-header">
+              <span class="budget-cat">${cat.icon} ${cat.name}</span>
+              <button class="budget-delete" onclick="deleteBudget(${b.id})">×</button>
+            </div>
+            <div class="budget-bar-track">
+              <div class="budget-bar-fill ${status}" style="width:${pct}%"></div>
+            </div>
+            <div class="budget-footer">
+              <span class="budget-spent">${formatNumber(spent)} مصرف</span>
+              <span class="budget-limit">از ${formatNumber(b.limit)}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderGoals() {
+      const container = document.getElementById('goalList');
+      const totalExpense = transactions.filter(t => t.account === currentAccount && t.type === 'expense').reduce((s,t)=>s+t.amount,0);
+      const totalIncome = transactions.filter(t => t.account === currentAccount && t.type === 'income').reduce((s,t)=>s+t.amount,0);
+      const available = totalIncome - totalExpense;
+
+      if (goals.length === 0) {
+        container.innerHTML = `<div class="empty"><div class="empty-icon">🎯</div><div class="empty-text">هنوز هدفی تعیین نکردی<br>برای هر چه می‌خوای Save کنی یه هدف بساز!</div></div>`;
+        return;
+      }
+
+      container.innerHTML = goals.map(g => {
+        const pct = Math.min(100, Math.round((g.current / g.target) * 100));
+        return `
+          <div class="goal-card">
+            <div class="goal-header">
+              <span class="goal-name">${g.name}</span>
+              <span class="goal-target">هدف: ${formatNumber(g.target)} تومان</span>
+            </div>
+            <div class="goal-bar-track">
+              <div class="goal-bar-fill" style="width:${pct}%"></div>
+            </div>
+            <div class="goal-footer">
+              <span class="goal-current">${formatNumber(g.current)} تومان ذخیره شده</span>
+              <span class="goal-pct">${pct}%</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderStats() {
+      const filtered = getFilteredTransactions();
+      const income = filtered.filter(t => t.type === 'income').reduce((s,t) => s + t.amount, 0);
+      const expense = filtered.filter(t => t.type === 'expense').reduce((s,t) => s + t.amount, 0);
+      const count = filtered.length;
+
+      document.getElementById('statsGrid').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-icon">💰</div>
+          <div class="stat-value" style="color:var(--green)">${formatNumber(income)}</div>
+          <div class="stat-label">کل درآمد</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💸</div>
+          <div class="stat-value" style="color:var(--red)">${formatNumber(expense)}</div>
+          <div class="stat-label">کل هزینه</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-value">${count}</div>
+          <div class="stat-label">تعداد تراکنش</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🔔</div>
+          <div class="stat-value">${reminders.filter(r=>new Date(r.date)>=new Date()).length}</div>
+          <div class="stat-label">یادآور پیش‌رو</div>
+        </div>
+      `;
+
+      // Category breakdown
+      const expByCat = {};
+      filtered.filter(t => t.type === 'expense').forEach(t => {
+        expByCat[t.category] = (expByCat[t.category] || 0) + t.amount;
+      });
+      const sortedCats = Object.entries(expByCat).sort((a,b) => b[1] - a[1]);
+      const maxCat = sortedCats[0]?.[1] || 1;
+
+      document.getElementById('categoryStats').innerHTML = sortedCats.length === 0
+        ? '<div class="empty"><div class="empty-text">هنوز هزینه‌ای ثبت نشده</div></div>'
+        : sortedCats.map(([catId, amount]) => {
+            const cat = getCategory('expense', catId);
+            const pct = Math.round((amount / maxCat) * 100);
+            return `
+              <div class="cat-bar-wrap">
+                <div class="cat-bar-label">
+                  <span>${cat.icon} ${cat.name}</span>
+                  <span style="font-weight:700">${formatNumber(amount)}</span>
+                </div>
+                <div class="cat-bar-track">
+                  <div class="cat-bar-fill" style="width:${pct}%"></div>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+      // Goals progress in stats
+      const totalExpenseGlobal = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+      const totalIncomeGlobal = transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+      const netWorth = totalIncomeGlobal - totalExpenseGlobal;
+
+      document.getElementById('goalStats').innerHTML = goals.length === 0
+        ? ''
+        : goals.map(g => {
+            const pct = Math.min(100, Math.round((g.current / g.target) * 100));
+            return `<div style="margin-bottom:8px;display:flex;justify-content:space-between;font-size:13px;">
+              <span>${g.name}</span>
+              <span style="color:var(--accent);font-weight:700">${pct}% (${formatNumber(g.current)} / ${formatNumber(g.target)})</span>
+            </div>`;
+          }).join('');
+    }
+
+    // ===== HELPERS =====
+    function getCategory(type, id) {
+      const list = CATEGORIES[type] || CATEGORIES.expense;
+      return list.find(c => c.id === id) || { id, name: id, icon: '📦' };
+    }
+
+    function formatNumber(n) {
+      return new Intl.NumberFormat('fa-IR').format(Math.abs(n));
+    }
+
+    function formatDate(dateStr) {
+      return new Intl.DateTimeFormat('fa-IR', { month: 'long', day: 'numeric' }).format(new Date(dateStr));
+    }
+
+    function formatDateTime(dateStr) {
+      const d = new Date(dateStr);
+      return new Intl.DateTimeFormat('fa-IR', {
+        month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      }).format(d);
+    }
+
+    // ===== FORM =====
+    function setType(type) {
+      currentType = type;
+      const btnE = document.getElementById('btn-expense');
+      const btnI = document.getElementById('btn-income');
+      btnE.className = 'type-btn' + (type === 'expense' ? ' active-expense' : '');
+      btnI.className = 'type-btn' + (type === 'income' ? ' active-income' : '');
+      renderCategories();
+      selectedCategory = '';
+      document.getElementById('categoryGroup').style.display = type === 'expense' || type === 'income' ? 'block' : 'none';
+    }
+
+    function renderCategories() {
+      const cats = CATEGORIES[currentType];
+      document.getElementById('categoryChips').innerHTML = cats.map(c =>
+        `<button class="chip ${selectedCategory === c.id ? 'selected' : ''}" onclick="selectCategory('${c.id}')">${c.name}</button>`
+      ).join('');
+    }
+
+    function selectCategory(id) {
+      selectedCategory = id;
+      renderCategories();
+    }
+
+    function toggleRecurringFields() {
+      const checked = document.getElementById('recurringToggle').checked;
+      document.getElementById('recurringFields').style.display = checked ? 'block' : 'none';
+    }
+
+    function toggleReminderFields() {
+      const checked = document.getElementById('reminderToggle').checked;
+      document.getElementById('reminderFields').style.display = checked ? 'block' : 'none';
+    }
+
+    function openModal(mode) {
+      if (mode === 'budget') {
+        document.getElementById('budgetModalOverlay').classList.add('active');
+        document.body.style.overflow = 'hidden';
+        return;
+      }
+      if (mode === 'goal') {
+        document.getElementById('goalModalOverlay').classList.add('active');
+        document.body.style.overflow = 'hidden';
+        return;
+      }
+      document.getElementById('modalOverlay').classList.add('active');
+      document.body.style.overflow = 'hidden';
+      setType('expense');
+      document.getElementById('amountInput').value = '';
+      document.getElementById('descInput').value = '';
+      document.getElementById('reminderToggle').checked = false;
+      document.getElementById('reminderFields').style.display = 'none';
+      document.getElementById('recurringToggle').checked = false;
+      document.getElementById('recurringFields').style.display = 'none';
+      document.getElementById('accountSelect').value = currentAccount;
+      setupDateInputs();
+    }
+
+    function closeModal(e) {
+      if (e.target === document.getElementById('modalOverlay')) closeModalDirect();
+    }
+    function closeModalDirect() {
+      document.getElementById('modalOverlay').classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function closeBudgetModal(e) {
+      if (e.target === document.getElementById('budgetModalOverlay')) closeBudgetModalDirect();
+    }
+    function closeBudgetModalDirect() {
+      document.getElementById('budgetModalOverlay').classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function closeGoalModal(e) {
+      if (e.target === document.getElementById('goalModalOverlay')) closeGoalModalDirect();
+    }
+    function closeGoalModalDirect() {
+      document.getElementById('goalModalOverlay').classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function submitForm() {
+      const amount = parseInt(document.getElementById('amountInput').value);
+      const desc = document.getElementById('descInput').value.trim();
+      const date = document.getElementById('dateInput').value;
+      const account = document.getElementById('accountSelect').value;
+      const isRecurring = document.getElementById('recurringToggle').checked;
+      const recurringInterval = document.getElementById('recurringInterval').value;
+
+      if (!amount || amount <= 0) {
+        showToast('لطفاً مبلغ را وارد کنید', 'error');
+        return;
+      }
+      if (!selectedCategory) {
+        showToast('لطفاً دسته‌بندی را انتخاب کنید', 'error');
+        return;
+      }
+
+      const txn = {
+        id: Date.now(),
+        type: currentType,
+        amount,
+        description: desc,
+        category: selectedCategory,
+        date: date || new Date().toISOString().split('T')[0],
+        account,
+        recurring: isRecurring,
+        recurringInterval,
+        createdAt: new Date().toISOString()
+      };
+      transactions.push(txn);
+
+      // Add reminder if toggled
+      if (document.getElementById('reminderToggle').checked) {
+        const rTitle = document.getElementById('reminderTitleInput').value.trim();
+        const rDate = document.getElementById('reminderDateInput').value;
+        const rPriority = document.getElementById('reminderPriorityInput').value;
+        if (rTitle && rDate) {
+          reminders.push({
+            id: Date.now() + 1,
+            title: rTitle,
+            amount,
+            date: rDate,
+            priority: rPriority,
+            transactionId: txn.id,
+            notified: false
+          });
+        }
+      }
+
+      saveData();
+      currentAccount = account;
+      renderAll();
+      closeModalDirect();
+      showToast('✓ با موفقیت ذخیره شد', 'success');
+      if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    }
+
+    function saveBudget() {
+      const category = document.getElementById('budgetCategory').value;
+      const limit = parseInt(document.getElementById('budgetAmount').value);
+      if (!limit || limit <= 0) { showToast('مبلغ بودجه معتبر نیست', 'error'); return; }
+      // Replace existing budget for same category
+      budgets = budgets.filter(b => b.category !== category);
+      budgets.push({ id: Date.now(), category, limit });
+      saveData();
+      renderBudgets();
+      closeBudgetModalDirect();
+      showToast('✓ بودجه ذخیره شد', 'success');
+    }
+
+    function deleteBudget(id) {
+      budgets = budgets.filter(b => b.id !== id);
+      saveData();
+      renderBudgets();
+    }
+
+    function saveGoal() {
+      const name = document.getElementById('goalNameInput').value.trim();
+      const target = parseInt(document.getElementById('goalTargetInput').value);
+      const current = parseInt(document.getElementById('goalCurrentInput').value) || 0;
+      if (!name || !target || target <= 0) { showToast('اطلاعات هدف ناقص است', 'error'); return; }
+      goals.push({ id: Date.now(), name, target, current });
+      saveData();
+      renderGoals();
+      closeGoalModalDirect();
+      showToast('✓ هدف ذخیره شد', 'success');
+    }
+
+    // ===== TABS =====
+    function switchTab(tabName) {
+      ['transactions','reminders','budgets','goals','stats'].forEach(t => {
+        const el = document.getElementById('tab-' + t);
+        if (el) el.classList.toggle('active', t === tabName);
+      });
+      document.querySelectorAll('.tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+      });
+    }
+
+    // ===== TOAST =====
+    function showToast(msg, type = '') {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'toast show ' + type;
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    // ===== CHECK REMINDERS =====
+    function checkReminders() {
+      const now = new Date();
+      reminders.forEach(r => {
+        if (!r.notified && new Date(r.date) <= now) {
+          r.notified = true;
+          saveData();
+          if (tg) {
+            tg.showAlert(`🔔 یادآور: ${r.title}\nمبلغ: ${formatNumber(r.amount)} تومان`);
+          }
+        }
+      });
+    }
+
+    // Run checks on load and every minute
+    init();
+    setInterval(checkReminders, 60000);
+  </script>
+</body>
+</html>
