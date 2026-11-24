@@ -209,8 +209,13 @@ app.use(express.json());
 
 // Webhook endpoint for Telegram
 app.post(`/webhook/${BOT_TOKEN}`, (req, res) => {
-  bot.handleUpdate(req.body);
-  res.sendStatus(200);
+  try {
+    bot.handleUpdate(req.body);
+    res.sendStatus(200);
+  } catch (e) {
+    console.error('Webhook error:', e.message);
+    res.sendStatus(400);
+  }
 });
 
 // Health check endpoint
